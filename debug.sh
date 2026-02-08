@@ -12,5 +12,5 @@ curl -I http://127.0.0.1:5050/
 echo -e "\n4. Testing Public HTTPS..."
 curl -I https://43.229.61.225.sslip.io/incoming-call
 
-echo -e "\n5. App Logs (Last 10 lines)..."
-tail -n 10 nohup.out
+echo -e "\n5. App Logs (Last 20 lines)..."
+tail -n 20 app.log
