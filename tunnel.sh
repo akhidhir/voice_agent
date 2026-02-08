@@ -1,11 +1,13 @@
 #!/bin/bash
 
-# 1. authenticate ngrok (User provided token)
-ngrok config add-authtoken 39NtAgOQMZFvC4M6PZP3M8JtRGY_5tmZyLrHDhGcZBrHNAXja
+# Plan B: Serveo (No token needed!)
 
-# 2. Start Uvicorn in background (silently)
+# 0. Kill existing uvicorn to free port 80 (just in case)
+pkill -f uvicorn
+
+# 1. Start server silently
 nohup ./venv/bin/uvicorn main:app --host 0.0.0.0 --port 80 > /dev/null 2>&1 &
 
-# 3. Start ngrok tunnel
-echo "Starting ngrok tunnel..."
-ngrok http 80
+# 2. Start Tunnel
+echo "Starting Serveo... Copy the URL below (e.g. https://abcd.serveo.net)"
+ssh -o StrictHostKeyChecking=no -R 80:localhost:80 serveo.net
