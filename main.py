@@ -61,7 +61,6 @@ async def handle_incoming_call(request: Request):
     # Use standard TwiML XML format
     xml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say>Thank you for calling A B B C Building Inspectors. One moment while I connect you to Sarah.</Say>
     <Connect>
         <Stream url="wss://{host}/media-stream" />
     </Connect>
@@ -99,6 +98,16 @@ async def handle_media_stream(websocket: WebSocket):
                     elif data['event'] == 'start':
                         stream_sid = data['start']['streamSid']
                         print(f"Incoming stream has started {stream_sid}")
+
+                        # Trigger the AI to speak first (Greeting)
+                        # We do this here to ensure we have the stream_sid to send audio back
+                        await openai_ws.send(json.dumps({
+                            "type": "response.create",
+                            "response": {
+                                "modalities": ["text", "audio"],
+                                "instructions": "Say 'Hi, this is Sarah from ABBC Building Inspectors. How can I help you today?'"
+                            }
+                        }))
             except WebSocketDisconnect:
                 print("Client disconnected.")
                 if openai_ws.open:
