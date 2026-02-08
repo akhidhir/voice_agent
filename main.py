@@ -14,7 +14,8 @@ load_dotenv()
 load_dotenv()
 
 # Hardcoded for VPS deployment ease (Temporary)
-os.environ["OPENAI_API_KEY"] = "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"
+# API Key is loaded from .env (See setup_key.sh)
+pass
 
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 PORT = int(os.getenv('PORT', 5050))
