@@ -10,13 +10,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Load environment variables
-load_dotenv()
-
-# Hardcoded for VPS deployment ease (Temporary)
-# API Key is loaded from .env (See setup_key.sh)
-pass
-
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 PORT = int(os.getenv('PORT', 5050))
 
@@ -38,7 +31,88 @@ SYSTEM_MESSAGE = (
     "Do not repeat yourself. Be direct."
 )
 
-# ... (omitted lines) ...
+VOICE = 'shimmer' # A warm female voice
+LOG_EVENT_TYPES = [
+    'response.content.done',
+    'rate_limits.updated',
+    'response.done',
+    'input_audio_buffer.committed',
+    'input_audio_buffer.speech_stopped',
+    'input_audio_buffer.speech_started',
+    'session.created'
+]
+
+app = FastAPI()
+
+if not OPENAI_API_KEY:
+    raise ValueError('Missing the OPENAI_API_KEY environment variable.')
+
+@app.get("/", response_class=HTMLResponse)
+async def index_page():
+    return "<html><body><h1>ABBC Voice Agent Server</h1></body></html>"
+
+@app.post("/incoming-call")
+async def handle_incoming_call(request: Request):
+    """Handle incoming call and return TwiML response to connect to Media Stream."""
+    host = request.headers.get('host')
+    # Use standard TwiML XML format
+    xml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Connect>
+        <Stream url="wss://{host}/media-stream" />
+    </Connect>
+</Response>"""
+    return Response(content=xml_content, media_type="application/xml")
+
+@app.websocket("/media-stream")
+async def handle_media_stream(websocket: WebSocket):
+    """Handle WebSocket connection between Twilio and OpenAI."""
+    print("Client connected")
+    await websocket.accept()
+
+    async with websockets.connect(
+        'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview',
+        additional_headers={
+            "Authorization": f"Bearer {OPENAI_API_KEY}",
+            "OpenAI-Beta": "realtime=v1"
+        }
+    ) as openai_ws:
+        await send_session_update(openai_ws)
+        stream_sid = None
+
+        async def receive_from_twilio():
+            """Receive audio data from Twilio and send to OpenAI."""
+            nonlocal stream_sid
+            try:
+                chunk_count = 0
+                async for message in websocket.iter_text():
+                    data = json.loads(message)
+                    if data['event'] == 'media':
+                        chunk_count += 1
+                        if chunk_count % 50 == 0:
+                            print(f"Received 50 audio chunks from Twilio...")
+                        audio_append = {
+                            "type": "input_audio_buffer.append",
+                            "audio": data['media']['payload']
+                        }
+                        await openai_ws.send(json.dumps(audio_append))
+                    elif data['event'] == 'start':
+                        stream_sid = data['start']['streamSid']
+                        print(f"Incoming stream has started {stream_sid}")
+
+                        # Trigger the AI to speak first (Greeting)
+                        print("Triggering initial greeting...")
+                        await openai_ws.send(json.dumps({
+                            "type": "response.create",
+                            "response": {
+                                "modalities": ["text", "audio"],
+                                "instructions": "Say 'G'day! This is Sarah from ABBC Building Inspectors. How can I help you today?'"
+                            }
+                        }))
+            except WebSocketDisconnect:
+                print("Client disconnected.")
+                if openai_ws.open:
+                    await openai_ws.close()
 
         async def send_to_twilio():
             """Receive events from OpenAI and send audio back to Twilio."""
@@ -119,7 +193,6 @@ async def send_session_update(openai_ws):
                 "prefix_padding_ms": 300,
                 "silence_duration_ms": 500
             },
-# ... (rest of file)
             "input_audio_format": "g711_ulaw",
             "output_audio_format": "g711_ulaw",
             "voice": VOICE,
