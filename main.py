@@ -74,7 +74,7 @@ async def handle_media_stream(websocket: WebSocket):
     await websocket.accept()
 
     async with websockets.connect(
-        'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01',
+        'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview',
         additional_headers={
             "Authorization": f"Bearer {OPENAI_API_KEY}",
             "OpenAI-Beta": "realtime=v1"
@@ -104,7 +104,6 @@ async def handle_media_stream(websocket: WebSocket):
                         print(f"Incoming stream has started {stream_sid}")
 
                         # Trigger the AI to speak first (Greeting)
-                        # We do this here to ensure we have the stream_sid to send audio back
                         print("Triggering initial greeting...")
                         await openai_ws.send(json.dumps({
                             "type": "response.create",
@@ -145,7 +144,8 @@ async def handle_media_stream(websocket: WebSocket):
                             await openai_ws.send(json.dumps({"type": "response.create"}))
 
                     if response['type'] == 'response.done':
-                         print(f"RESPONSE DONE. Details: {json.dumps(response.get('response', {}), indent=2)}")
+                         # Print the WHOLE object to see status/failure reasoning
+                         print(f"RESPONSE DONE FULL DUMP: {json.dumps(response, indent=2)}")
 
                     if response['type'] == 'response.audio.delta' and response.get('delta'):
                         if stream_sid:
