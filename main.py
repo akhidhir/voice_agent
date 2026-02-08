@@ -33,8 +33,8 @@ SYSTEM_MESSAGE = (
 )
 
 # Using ElevenLabs voice via Vapi
-# "Nicole" is a standard high quality female voice. We instruct accent in prompt.
-VOICE_ID = "piTKgcLEGmPE4e6mEKli" # Nicole (Standard Vapi/11Labs voice)
+# User provided Voice ID: likely an Australian accent or similar high-quality voice
+VOICE_ID = "sx8pHRzXdQfuUYPGFK7X"
 
 @app.get("/")
 async def index_page():
