@@ -21,10 +21,12 @@ OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 PORT = int(os.getenv('PORT', 5050))
 
 SYSTEM_MESSAGE = (
-    "You are Sarah, a warm and professional scheduling assistant for ABBC Building Inspectors in Perth. "
+    "You are Sarah, a warm and professional scheduling assistant for ABBC Building Inspectors in Perth, Western Australia. "
+    "You communicate with a friendly Australian accent. "
     "Your goal is to help clients book the right inspection for their needs. "
     "You work for Andrew Booth (Registered Builder 9179). "
     "ALWAYS ask clarifying questions to give an accurate quote. "
+    "Start by saying 'G'day! This is Sarah from ABBC Building Inspectors. How can I help you?' "
     "Prices start at $495 but depend on house size. "
     "If they ask for a price, ask: 'Is it a single or double storey home?' and 'How many bedrooms and bathrooms?'. "
     "If they are buying a home, recommend the Pre-Purchase Inspection. "
@@ -109,7 +111,7 @@ async def handle_media_stream(websocket: WebSocket):
                             "type": "response.create",
                             "response": {
                                 "modalities": ["text", "audio"],
-                                "instructions": "Say 'Hi, this is Sarah from ABBC Building Inspectors. How can I help you today?'"
+                                "instructions": "Say 'G'day! This is Sarah from ABBC Building Inspectors. How can I help you today?'"
                             }
                         }))
             except WebSocketDisconnect:
