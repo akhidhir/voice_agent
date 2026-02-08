@@ -137,7 +137,12 @@ async def handle_media_stream(websocket: WebSocket):
                         print(f"!!! ERROR !!!: {json.dumps(response, indent=2)}")
 
                     if response['type'] == 'conversation.item.input_audio_transcription.completed':
-                        print(f"TRANSCRIPTION: {response.get('transcript', '((No transcript))')}")
+                        transcript = response.get('transcript', '((No transcript))')
+                        print(f"TRANSCRIPTION: {transcript}")
+                        # FORCE the model to respond if it heard something
+                        if transcript.strip():
+                            print("Forcing response generation...")
+                            await openai_ws.send(json.dumps({"type": "response.create"}))
 
                     if response['type'] == 'response.done':
                          print(f"RESPONSE DONE. Details: {json.dumps(response.get('response', {}), indent=2)}")
