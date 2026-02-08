@@ -132,6 +132,16 @@ async def handle_media_stream(websocket: WebSocket):
                     if response['type'] == 'session.updated':
                         print("Session updated successfully:", response)
 
+                    # Log specific events with MORE detail
+                    if response['type'] == 'error':
+                        print(f"!!! ERROR !!!: {json.dumps(response, indent=2)}")
+
+                    if response['type'] == 'conversation.item.input_audio_transcription.completed':
+                        print(f"TRANSCRIPTION: {response.get('transcript', '((No transcript))')}")
+
+                    if response['type'] == 'response.done':
+                         print(f"RESPONSE DONE. Details: {json.dumps(response.get('response', {}), indent=2)}")
+
                     if response['type'] == 'response.audio.delta' and response.get('delta'):
                         if stream_sid:
                             # print(".", end="", flush=True) # visual indicator of audio flow
@@ -148,7 +158,6 @@ async def handle_media_stream(websocket: WebSocket):
                     
                     # Handle Function Calling
                     if response['type'] == 'response.done':
-                         print("Response generation done.")
                          if response.get('response', {}).get('output'):
                             for item in response['response']['output']:
                                 if item.get('type') == 'function_call':
