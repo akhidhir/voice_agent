@@ -87,9 +87,13 @@ async def handle_media_stream(websocket: WebSocket):
             """Receive audio data from Twilio and send to OpenAI."""
             nonlocal stream_sid
             try:
+                chunk_count = 0
                 async for message in websocket.iter_text():
                     data = json.loads(message)
                     if data['event'] == 'media':
+                        chunk_count += 1
+                        if chunk_count % 50 == 0:
+                            print(f"Received 50 audio chunks from Twilio...")
                         audio_append = {
                             "type": "input_audio_buffer.append",
                             "audio": data['media']['payload']
@@ -101,6 +105,7 @@ async def handle_media_stream(websocket: WebSocket):
 
                         # Trigger the AI to speak first (Greeting)
                         # We do this here to ensure we have the stream_sid to send audio back
+                        print("Triggering initial greeting...")
                         await openai_ws.send(json.dumps({
                             "type": "response.create",
                             "response": {
@@ -119,14 +124,17 @@ async def handle_media_stream(websocket: WebSocket):
             try:
                 async for openai_message in openai_ws:
                     response = json.loads(openai_message)
-                    if response['type'] in LOG_EVENT_TYPES:
-                        print(f"Received event: {response['type']}")
                     
+                    # Log EVERYTHING for debugging (except raw audio deltas which are huge)
+                    if response['type'] != 'response.audio.delta':
+                        print(f"OpenAI Event: {response['type']}")
+
                     if response['type'] == 'session.updated':
                         print("Session updated successfully:", response)
 
                     if response['type'] == 'response.audio.delta' and response.get('delta'):
                         if stream_sid:
+                            # print(".", end="", flush=True) # visual indicator of audio flow
                             audio_delta = {
                                 "event": "media",
                                 "streamSid": stream_sid,
@@ -135,9 +143,12 @@ async def handle_media_stream(websocket: WebSocket):
                                 }
                             }
                             await websocket.send_json(audio_delta)
+                        else:
+                            print("Warning: Received audio but no stream_sid yet!")
                     
                     # Handle Function Calling
                     if response['type'] == 'response.done':
+                         print("Response generation done.")
                          if response.get('response', {}).get('output'):
                             for item in response['response']['output']:
                                 if item.get('type') == 'function_call':
